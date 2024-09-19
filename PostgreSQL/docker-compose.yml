@@ -1,0 +1,37 @@
+services:
+    postgres:
+        image: postgres:latest
+        # on force le UID et GID pour un fonctionnement sur Linux. Attention, bien lire le README pour le premier lancement de la BDD.
+        user: "${UID}:${GID}"
+        container_name: carshare-db
+        restart: always
+        environment:
+          - POSTGRES_USER=${POSTGRES_USER}
+          - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          - POSTGRES_DB=${POSTGRES_DATABASE}
+        logging: # option de paramétrage des logs
+          options:
+            max-size: 10m # fichier de 10 Mo maximum
+            max-file: "3" # jusqu'à 3 fichiers de log
+        ports:
+          - '5432:5432' # redirection de port, le nombre de gauche correspond au port local et le nombre de droite au utilisé sur le conteneur
+        volumes:
+          # on monte le volume pointant vers le dossier contenant les informations des BDD 
+          - ${POSTGRES_DUMP_DIR}:/var/lib/postgresql/data
+          # Afin de sauvergarder les données dans le dépôt git, il faut enlever la ligne "postgres-data" du .gitignore
+          
+          # on monte également le dossier contenant les variables d'exécution (/var/run sur Linux).
+          # ce dossier contient, par exemple, un fichier ".lock" protégeant l'accès en écriture aux fichiers de BDD
+          # lorsque le SGBDR est démarré 
+          # - ./postgres-run:/var/run/postgresql
+          # copie du script SQL de création de base de données sur le conteneur
+          - ./db/dump/V1.0__carshare-schema.sql:/docker-entrypoint-initdb.d/V1.0__carshare-schema.sql
+    pgadmin:
+      image: dpage/pgadmin4
+      ports:
+        - "8080:80"
+      environment:
+        PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+        PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+        PGADMIN_CONFIG_SERVER_MODE: 'False'
+
